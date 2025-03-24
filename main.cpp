@@ -1,24 +1,31 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
-#include <algorithm> // New: Include the algorithm header
+#include <algorithm>
+#include <string>
+#include <limits>
+#include "assignment.h" // Include the Assignment class
 
 int main()
 {
     int total_course_points = 0;
-    float assignment_score = 0.00;
     float total_points_earned = 0.00;
     float total_percentage_earned = 0.00;
     float A_points = 0.00, B_points = 0.00, C_points = 0.00, D_points = 0.00;
     float A_percentage = 0.00, B_percentage = 0.00, C_percentage = 0.00, D_percentage = 0.00;
     char earned_grade;
-    std::vector<float> assignment_scores;
-//Greeting
+    std::vector<Assignment> assignments; // New: Vector to store Assignment objects
+    std::string assignment_name;
+    float assignment_score;
+    float assignment_possible;
+    bool assignment_bonus;
+
+    // Greeting
     std::cout << "Welcome to Charlie Brown's Grade Calculator for COSC 1436\n\n";
-std::cout << "Grading Scheme\n";
-std::cout << "Please input the Total Points Possible: ";
-std::cin >> total_course_points;
-std::cout << '\n';
+    std::cout << "Grading Scheme\n";
+    std::cout << "Please input the Total Points Possible: ";
+    std::cin >> total_course_points;
+    std::cout << '\n';
     for (char grade = 'A'; grade <= 'D'; grade++)
     {
         std::cout << "Please input the Minimum Points for a '" << grade << "': ";
@@ -45,38 +52,83 @@ std::cout << '\n';
     std::cout << "Points needed for a 'D': " << D_points << " or " << D_percentage << '%' << "\n\n";
 
     std::cout << "Grade Calculation\n";
-    std::cout << "You will be prompted to input scores for all assignments.\n"
-              << "(Input a negative number to cease input and calculate letter grade.)\n\n";
+    std::cout << "You will be prompted to input scores for all assignments. \n"
+              << "(Input 'done' or 'Done' to cease input and calculate the letter grade.) \n \n";
     bool score_input = true;
-    int assignment = 1;
     do
     {
-        std::cout << "Please input the points earned for Assignment " << assignment << ": ";
-        std::cin >> assignment_score;
-        if (assignment_score >= 0)
+        std::cout << "Please input the assignment name or 'done' to quit: ";
+        std::getline(std::cin >> std::ws, assignment_name); // Ensure no leftover newlines
+        if (assignment_name != "done" && assignment_name != "Done")
         {
-            assignment_scores.push_back(assignment_score); // Add the score to the vector
+            Assignment assignment;
+            assignment.setName(assignment_name);
+            std::cout << "Please input the points possible for " << assignment_name << ": ";
+            std::cin >> assignment_possible;
+            while (std::cin.fail())
+            {
+                std::cin.clear();                                                   // Clear the error flag
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
+                std::cout << "Invalid input. Please enter a valid numeric value for points possible: ";
+                std::cin >> assignment_possible;
+            }
+            assignment.setPointsPossible(assignment_possible);
+            std::cout << "Please input the points earned for " << assignment_name << ": ";
+            std::cin >> assignment_score;
+            while (std::cin.fail())
+            {
+                std::cin.clear();                                                   // Clear the error flag
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
+                std::cout << "Invalid input. Please enter a valid numeric score for " << assignment_name << ": ";
+                std::cin >> assignment_score;
+            }
+            assignment.setPointsEarned(assignment_score);
+            std::cout << "Is this a bonus assignment? (1 for Yes, 0 for No): ";
+            std::cin >> assignment_bonus;
+            while (std::cin.fail() || (assignment_bonus != 0 && assignment_bonus != 1))
+            {
+                std::cin.clear();                                                   // Clear the error flag
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
+                std::cout << "Invalid input. Please enter 1 (Yes) or 0 (No): ";
+                std::cin >> assignment_bonus;
+            }
+            assignment.setBonus(assignment_bonus);
+            assignments.push_back(assignment); // Add the assignment to the vector
             total_points_earned += assignment_score;
-            assignment++;
         }
         else
         {
             score_input = false;
-            continue;
         }
     } while (score_input);
 
-    // Find the highest and lowest scores
-    if (!assignment_scores.empty())
-    {
-        auto min_it = std::min_element(assignment_scores.begin(), assignment_scores.end());
-        auto max_it = std::max_element(assignment_scores.begin(), assignment_scores.end());
-        std::cout << "\nHighest score: " << *max_it << '\n';
-        std::cout << "Lowest score: " << *min_it << '\n';
+    std::cout << "Total number of assignments created: "
+<< Assignment::getTotalAssignments() << '\n';
+
+    // Scores entered
+    std::cout << "\nScores entered:\n";
+    if (!assignments.empty()) {
+    for (const auto& assignment : assignments) {
+    float percentage = (assignment.getPointsEarned() / assignment.getPointsPossible()) * 100;
+    std::cout << "Assignment: " << assignment.getName()
+    << ", Points Earned: " << assignment.getPointsEarned()
+    << ", Points Possible: " << assignment.getPointsPossible()
+    << ", Percentage: " << percentage << '%'
+    << ", Bonus: " << (assignment.isBonus() ? "Yes" : "No") << '\n';
     }
-    else
-    {
-        std::cout << "\nNo scores were entered.\n";
+    // Find the highest and lowest scores using lambda functions
+    auto min_it = std::min_element(assignments.begin(), assignments.end(), [](const Assignment& a, const
+    Assignment& b) {
+    return a.getPointsEarned() < b.getPointsEarned();
+    });
+    auto max_it = std::max_element(assignments.begin(), assignments.end(), [](const Assignment& a,
+    const Assignment& b) {
+    return a.getPointsEarned() < b.getPointsEarned();
+    });
+    std::cout << "\nHighest score: " << max_it->getPointsEarned() << '\n';
+    std::cout << "Lowest score: " << min_it->getPointsEarned() << '\n';
+    } else {
+    std::cout << "\nNo scores were entered.\n";
     }
 
     if (total_points_earned >= A_points)
